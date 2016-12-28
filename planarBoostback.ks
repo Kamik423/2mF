@@ -1,24 +1,27 @@
 PARAMETER landingpad.
-PARAMETER overshoot.
+PARAMETER k.
 
 LOCK impact TO -landingpad:POSITION.
 
-SET k TO 9.
+IF NOT BRAKES { TOGGLE BRAKES.}
+LOCK STEERING TO -SHIP:VELOCITY:SURFACE.
+WAIT 20.
+TOGGLE BRAKES.
 
-UNTIL (VANG(VXCL(SHIP:UP:FOREVECTOR, landingpad:POSITION), VXCL(SHIP:UP:FOREVECTOR, impact)) < 45) AND (VXCL(SHIP:UP:FOREVECTOR, impact):MAG - overshoot > VXCL(SHIP:UP:FOREVECTOR, landingpad:POSITION):MAG){ //Less than 45º off of the launchpad to ensure right direction, and distance to impact > distance to launchpad
+UNTIL (VANG(VXCL(SHIP:UP:FOREVECTOR, landingpad:POSITION), VXCL(SHIP:UP:FOREVECTOR, impact)) < 45) AND (VXCL(SHIP:UP:FOREVECTOR, impact):MAG > VXCL(SHIP:UP:FOREVECTOR, landingpad:POSITION):MAG){ //Less than 45º off of the launchpad to ensure right direction, and distance to impact > distance to launchpad
     LOCK STEERING TO VXCL(SHIP:UP:FOREVECTOR, landingpad:POSITION):NORMALIZED * 2 - SHIP:VELOCITY:SURFACE:NORMALIZED.
-    LOCK THROTTLE TO 1.
+    LOCK THROTTLE TO MAX(ABS(-VXCL(SHIP:UP:FOREVECTOR, impact):MAG + VXCL(SHIP:UP:FOREVECTOR, landingpad:POSITION):MAG), 0) / 10000 + 0.5.
     SET ps TO V(0,0,0).
     SET vs TO SHIP:VELOCITY:SURFACE.
     SET as TO V(0,0,0).
     SET t TO 0.
-    UNTIL ps:Z < -ALT:RADAR {
+    UNTIL ps:Z < -SHIP:ALTITUDE {
         SET t TO t + 1.
-        SET as TO (- as:NORMALIZED * (as:MAG ^ 2 * k * (0.99997 ^ ALT:RADAR)) / (SHIP:MASS * 1000)) - SHIP:UP:FOREVECTOR:NORMALIZED * 9.81.
-        SET vs TO VS + as.
+        SET as TO (- vs:NORMALIZED * (vs:MAG ^ 2 * k * (0.99997 ^ ALT:RADAR)) / (SHIP:MASS * 1000)) - SHIP:UP:FOREVECTOR:NORMALIZED * 9.81.
+        SET vs TO vs + as.
         SET ps TO ps + vs.
     }
-    SET impact TO ps.
+    LOCK impact TO ps.
 }
 LOCK THROTTLE TO 0.
 LOCK STEERING TO RETROGRADE.
